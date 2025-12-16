@@ -20,14 +20,12 @@ const CONTRACT_ABI = [
     "function player() view returns (address)"
 ];
 
-// Глобальные переменные
 let provider;
 let signer;
 let contract;
 let account;
 let network;
 
-// Состояния игры
 const GAME_STATES = {
     0: 'Idle ⏸️',
     1: 'Your Turn 🎮',
@@ -58,7 +56,7 @@ const CARD_NAMES = {
     13: 'K'
 };
 
-// DOM элементы
+// DOM 
 const connectBtn = document.getElementById('connectBtn');
 const disconnectBtn = document.getElementById('disconnectBtn');
 const walletInfo = document.getElementById('walletInfo');
@@ -82,7 +80,6 @@ const payoutBtn = document.getElementById('payoutBtn');
 const resetBtn = document.getElementById('resetBtn');
 const transactionStatus = document.getElementById('transactionStatus');
 
-// Проверка наличия MetaMask
 async function checkMetaMask() {
     if (typeof window.ethereum === 'undefined') {
         installMeta.classList.remove('hidden');
@@ -91,46 +88,31 @@ async function checkMetaMask() {
         return false;
     }
     
-    // Проверяем, разблокирован ли MetaMask
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
     if (accounts.length > 0) {
-        // Автоматически подключаемся если уже подключен
         await connectWallet();
     }
     
     return true;
 }
 
-// Подключение кошелька
 async function connectWallet() {
     try {
         if (!window.ethereum) {
             throw new Error('Please install MetaMask!');
         }
-
-        // Запрашиваем доступ к аккаунтам
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         
-        // Создаем провайдера
         provider = new ethers.BrowserProvider(window.ethereum);
-        
-        // Получаем подписанта
         signer = await provider.getSigner();
         account = await signer.getAddress();
-        
-        // Получаем информацию о сети
         network = await provider.getNetwork();
-        
-        // Создаем экземпляр контракта
         contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
         
-        // Обновляем UI
         await updateWalletUI();
         
-        // Настраиваем слушатели событий
         setupEventListeners();
         
-        // Обновляем состояние игры
         await updateGameState();
         
         return true;
@@ -142,31 +124,25 @@ async function connectWallet() {
     }
 }
 
-// Отключение кошелька
 function disconnectWallet() {
     provider = null;
     signer = null;
     contract = null;
     account = null;
     
-    // Обновляем UI
     connectBtn.classList.remove('hidden');
     walletInfo.classList.add('hidden');
     gameArea.classList.add('hidden');
     statusDiv.textContent = 'Wallet disconnected. Connect to play.';
     
-    // Сбрасываем состояние игры
     resetGameUI();
 }
 
-// Обновление UI кошелька
 async function updateWalletUI() {
     if (!account) return;
     
-    // Обновляем информацию об аккаунте
     accountSpan.textContent = `${account.substring(0, 6)}...${account.substring(38)}`;
     
-    // Получаем баланс
     try {
         const balance = await provider.getBalance(account);
         balanceSpan.textContent = ethers.formatEther(balance).substring(0, 7);
@@ -174,11 +150,9 @@ async function updateWalletUI() {
         console.error('Failed to get balance:', error);
     }
     
-    // Обновляем информацию о сети
     networkInfo.textContent = `Network: ${network.name} (Chain ID: ${network.chainId})`;
     networkInfo.classList.remove('hidden');
     
-    // Показываем элементы
     connectBtn.classList.add('hidden');
     walletInfo.classList.remove('hidden');
     gameArea.classList.remove('hidden');
@@ -188,11 +162,9 @@ async function updateWalletUI() {
     statusDiv.style.color = '#4ecdc4';
 }
 
-// Настройка слушателей событий MetaMask
 function setupEventListeners() {
     if (!window.ethereum) return;
     
-    // Смена аккаунта
     window.ethereum.on('accountsChanged', (accounts) => {
         if (accounts.length === 0) {
             disconnectWallet();
@@ -201,14 +173,11 @@ function setupEventListeners() {
         }
     });
     
-    // Смена сети
     window.ethereum.on('chainChanged', () => {
         location.reload();
     });
     
-    // События контракта
     if (contract) {
-        // Очищаем предыдущие слушатели
         contract.removeAllListeners();
         
         contract.on('GameStarted', async (player, bet) => {
@@ -222,10 +191,8 @@ function setupEventListeners() {
             showTransaction(`You drew: ${CARD_NAMES[card] || card}`);
             await updateGameState();
             
-            // Проверяем, не проиграл ли игрок (более 21 очка)
             if (total > 21) {
                 showError('Bust! You went over 21.');
-                // Автоматически переходим к результату
                 setTimeout(async () => {
                     await updateGameState();
                 }, 1000);
@@ -244,7 +211,6 @@ function setupEventListeners() {
             showTransaction(`Game finished! Result: ${resultText}`);
             await updateGameState();
             
-            // Показываем результат
             const resultNum = Number(result);
             if (resultNum === 1) {
                 showCelebration('🎉 You Win!');
@@ -264,7 +230,6 @@ function setupEventListeners() {
     }
 }
 
-// Обновление состояния игры
 async function updateGameState() {
     if (!contract) return;
     
@@ -287,38 +252,30 @@ async function updateGameState() {
             player: currentPlayer
         });
         
-        // Преобразуем BigInt в числа
         const stateNum = Number(currentState);
         const resultNum = Number(result);
         const playerScoreNum = Number(pScore);
         const dealerScoreNum = Number(dScore);
         const betNum = Number(currentBet);
         
-        // Обновляем тексты
         stateText.textContent = `Game State: ${GAME_STATES[stateNum] || stateNum}`;
         resultText.textContent = `Result: ${GAME_RESULTS[resultNum] || resultNum}`;
         playerScoreSpan.textContent = playerScoreNum.toString();
         dealerScoreSpan.textContent = dealerScoreNum.toString();
         
-        // Получаем карты
         const playerCards = await contract.getPlayerCards();
         const dealerCards = await contract.getDealerCards();
         
-        // Преобразуем BigInt в числа
         const playerCardsNum = playerCards.map(card => Number(card));
         const dealerCardsNum = dealerCards.map(card => Number(card));
         
-        // Отображаем карты
         displayCards(playerCardsDiv, playerCardsNum, 'player');
         displayCards(dealerCardsDiv, dealerCardsNum, 'dealer', stateNum);
         
-        // Обновляем состояние кнопок
         updateButtons(stateNum, resultNum, currentPlayer);
         
-        // Обновляем статус
         updateStatus(stateNum, resultNum);
         
-        // Если игра завершена, показываем результат
         if (stateNum === 3) {
             showGameResult(resultNum, playerScoreNum, dealerScoreNum);
         }
@@ -329,7 +286,6 @@ async function updateGameState() {
     }
 }
 
-// Отображение карт
 function displayCards(container, cards, playerType, gameState = 0) {
     container.innerHTML = '';
     
@@ -345,7 +301,6 @@ function displayCards(container, cards, playerType, gameState = 0) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card';
         
-        // Для дилера скрываем первую карту до конца игры игрока
         if (playerType === 'dealer' && index === 0 && gameState === 1) {
             cardDiv.classList.add('dealer-hidden');
             cardDiv.textContent = '?';
@@ -353,7 +308,6 @@ function displayCards(container, cards, playerType, gameState = 0) {
             const cardName = CARD_NAMES[cardValue] || cardValue.toString();
             cardDiv.textContent = cardName;
             
-            // Красные карты (черви и бубны) - 1, 3, 5, 7, 9, 11, 13
             const isRed = [1, 3, 5, 7, 9, 11, 13].includes(Number(cardValue));
             cardDiv.classList.add(isRed ? 'red' : 'black');
         }
@@ -362,9 +316,7 @@ function displayCards(container, cards, playerType, gameState = 0) {
     });
 }
 
-// Обновление кнопок
 function updateButtons(gameState, result, currentPlayer) {
-    // Скрываем все игровые кнопки
     hitBtn.classList.add('hidden');
     standBtn.classList.add('hidden');
     payoutBtn.classList.add('hidden');
@@ -399,7 +351,6 @@ function updateButtons(gameState, result, currentPlayer) {
     }
 }
 
-// Обновление статуса
 function updateStatus(gameState, result) {
     switch (gameState) {
         case 0:
@@ -428,7 +379,6 @@ function updateStatus(gameState, result) {
     }
 }
 
-// Показать результат игры
 function showGameResult(result, playerScore, dealerScore) {
     let resultMessage = '';
     let resultClass = '';
@@ -451,7 +401,6 @@ function showGameResult(result, playerScore, dealerScore) {
             break;
     }
     
-    // Создаем или обновляем элемент с результатом
     let resultElement = document.getElementById('gameResultDisplay');
     if (!resultElement) {
         resultElement = document.createElement('div');
@@ -468,12 +417,9 @@ function showGameResult(result, playerScore, dealerScore) {
     resultElement.classList.remove('hidden');
 }
 
-// Показать анимацию победы
 function showCelebration(message) {
-    // Можно добавить анимацию или эффекты
     console.log('Celebration:', message);
     
-    // Добавляем класс для анимации
     const gameArea = document.getElementById('gameArea');
     gameArea.classList.add('celebrate');
     
@@ -482,7 +428,6 @@ function showCelebration(message) {
     }, 2000);
 }
 
-// Сброс UI игры
 function resetGameUI() {
     playerCardsDiv.innerHTML = '';
     dealerCardsDiv.innerHTML = '';
@@ -493,14 +438,12 @@ function resetGameUI() {
     betAmountInput.value = '0.01';
     transactionStatus.classList.add('hidden');
     
-    // Скрываем результат игры
     const resultElement = document.getElementById('gameResultDisplay');
     if (resultElement) {
         resultElement.classList.add('hidden');
     }
 }
 
-// Показать статус транзакции
 function showTransaction(message) {
     transactionStatus.textContent = message;
     transactionStatus.classList.remove('hidden');
@@ -509,17 +452,14 @@ function showTransaction(message) {
     }, 5000);
 }
 
-// Показать ошибку
 function showError(message) {
     statusDiv.textContent = `❌ ${message}`;
     statusDiv.style.color = '#ff6b6b';
     setTimeout(() => {
-        // Через 3 секунды возвращаем нормальный статус
         updateStatusFromContract();
     }, 3000);
 }
 
-// Обновить статус из контракта
 async function updateStatusFromContract() {
     if (!contract) return;
     try {
@@ -531,16 +471,13 @@ async function updateStatusFromContract() {
     }
 }
 
-// Инициализация игры
+
 async function init() {
-    // Проверяем MetaMask
     await checkMetaMask();
-    
-    // Вешаем обработчики на кнопки
+
     connectBtn.addEventListener('click', connectWallet);
     disconnectBtn.addEventListener('click', disconnectWallet);
     
-    // Начало игры
     startGameBtn.addEventListener('click', async () => {
         try {
             const betAmount = ethers.parseEther(betAmountInput.value);
@@ -550,7 +487,7 @@ async function init() {
             await tx.wait();
             
             showTransaction('Game started successfully!');
-            await updateGameState(); // Обновляем UI
+            await updateGameState(); 
             
         } catch (error) {
             console.error('Start game error:', error);
@@ -558,14 +495,12 @@ async function init() {
         }
     });
     
-    // Hit
     hitBtn.addEventListener('click', async () => {
         try {
             showTransaction('Taking a card...');
             const tx = await contract.hit();
             await tx.wait();
             
-            // ОБНОВЛЯЕМ UI ПОСЛЕ HIT
             await updateGameState();
             
         } catch (error) {
@@ -574,14 +509,12 @@ async function init() {
         }
     });
     
-    // Stand
     standBtn.addEventListener('click', async () => {
         try {
             showTransaction('Standing...');
             const tx = await contract.stand();
             await tx.wait();
             
-            // ОБНОВЛЯЕМ UI ПОСЛЕ STAND
             await updateGameState();
             
         } catch (error) {
@@ -589,15 +522,13 @@ async function init() {
             showError(`Failed to stand: ${error.message}`);
         }
     });
-    
-    // Payout
+
     payoutBtn.addEventListener('click', async () => {
         try {
             showTransaction('Claiming winnings...');
             const tx = await contract.payout();
             await tx.wait();
             
-            // Обновляем баланс и состояние
             await updateWalletUI();
             await updateGameState();
             
@@ -607,14 +538,12 @@ async function init() {
         }
     });
     
-    // Reset
     resetBtn.addEventListener('click', async () => {
         try {
             showTransaction('Resetting game...');
             const tx = await contract.resetGame();
             await tx.wait();
             
-            // Обновляем UI после сброса
             await updateGameState();
             
         } catch (error) {
@@ -624,5 +553,4 @@ async function init() {
     });
 }
 
-// Запускаем приложение при загрузке страницы
 window.addEventListener('load', init);
