@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Web3 Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 Blackjack Web3 Game</h1>
+        
+        <div id="walletSection">
+            <div class="controls">
+                <button id="connectBtn" class="connect-btn">Connect MetaMask</button>
+                <div id="walletInfo" class="hidden">
+                    <p>Connected: <span id="account"></span></p>
+                    <p>Balance: <span id="balance"></span> ETH</p>
+                    <button id="disconnectBtn" class="disconnect-btn">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            <div id="statusText">Please connect your MetaMask wallet</div>
+            <div id="networkInfo" class="hidden"></div>
+        </div>
+
+        <div id="gameArea" class="hidden">
+            <h2>🎲 Place Your Bet</h2>
+            <div class="bet-input">
+                <input type="number" id="betAmount" value="0.01" step="0.01" min="0.01" max="1">
+                <span>ETH</span>
+                <button id="startGameBtn" class="start-btn">Start Game</button>
+            </div>
+
+            <div id="gameState" class="game-state">
+                <h3 id="stateText">Game State: Idle</h3>
+                <h3 id="resultText">Result: None</h3>
+            </div>
+
+            <div class="cards-section">
+                <div class="player-area">
+                    <h3>👤 Your Cards <span id="playerScore">0</span></h3>
+                    <div id="playerCards" class="cards-container"></div>
+                </div>
+                
+                <div class="dealer-area">
+                    <h3>🏦 Dealer Cards <span id="dealerScore">0</span></h3>
+                    <div id="dealerCards" class="cards-container"></div>
+                </div>
+            </div>
+
+            <div class="controls game-controls">
+                <button id="hitBtn" class="hit-btn hidden">Hit 🃏</button>
+                <button id="standBtn" class="stand-btn hidden">Stand ✋</button>
+                <button id="payoutBtn" class="payout-btn hidden">💰 Claim Winnings</button>
+                <button id="resetBtn" class="reset-btn hidden">🔄 New Game</button>
+            </div>
+
+            <div id="transactionStatus" class="transaction-status hidden"></div>
+        </div>
+
+        <div id="installMetaMask" class="install-meta hidden">
+            <h2>⚠️ MetaMask Required</h2>
+            <p>Please install MetaMask browser extension to play this game.</p>
+            <a href="https://metamask.io/download/" target="_blank" class="meta-link">
+                <button class="meta-btn">Install MetaMask</button>
+            </a>
+        </div>
+    </div>
+
+    <!-- Ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
